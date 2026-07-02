@@ -102,7 +102,7 @@ uvicorn
 python-jose[cryptography]
 pytz
 passlib
-python-mulipart
+python-multipart
 pydantic-settings
 bcrypt == 4.0.1 'pydantic[email]'
 
