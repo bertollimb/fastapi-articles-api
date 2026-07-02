@@ -2,6 +2,8 @@
 
 REST API with user authentication and article management, built with FastAPI, PostgreSQL, SQLAlchemy async and JWT.
 
+This project simulates the backend of a multi-user publishing platform, where authenticated users can create, manage, and share articles. It was built to apply production-level backend practices: layered architecture, secure authentication, async database operations, and fully documented endpoints.
+
 ---
 
 ## Technologies
