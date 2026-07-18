@@ -1,9 +1,8 @@
 from sqlalchemy import Integer, String, Column, Boolean
 from sqlalchemy.orm import relationship
 
-from core.configs import settings
-
-class UserModel(settings.DBBaseModel):
+from core.database import Base
+class UserModel(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, autoincrement=True)

@@ -6,7 +6,6 @@ from typing import ClassVar
 class Settings(BaseSettings):
     API_V1_STR: str = '/api/v1'
     DB_URL: str
-    DBBaseModel: ClassVar = declarative_base()
 
     # To generate a secure JWT_SECRET, run in Python:
     # import secrets; secrets.token_urlsafe(32)
@@ -17,7 +16,8 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_file= ".env",
-        case_sensitive=True
+        case_sensitive=True,
+        extra='ignore'
     )
 
 settings = Settings()

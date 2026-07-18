@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
-from core.configs import settings
+from core.database import Base
 
-class ArticleModel(settings.DBBaseModel):
+class ArticleModel(Base):
     __tablename__ = 'articles'
 
     id = Column(Integer, primary_key=True, autoincrement=True)

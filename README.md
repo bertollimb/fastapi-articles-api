@@ -2,7 +2,7 @@
 
 REST API with user authentication and article management, built with FastAPI, PostgreSQL, SQLAlchemy async and JWT.
 
-This project simulates the backend of a multi-user publishing platform, where authenticated users can create, manage, and share articles. It was built to apply production-level backend practices: layered architecture, secure authentication, async database operations, and fully documented endpoints.
+This project simulates the backend of a multi-user publishing platform, where authenticated users can create, manage, and share articles. It was built to apply production-level backend practices: layered architecture, secure authentication, async database operations, schema migrations, and fully documented endpoints.
 
 ---
 
@@ -12,6 +12,7 @@ This project simulates the backend of a multi-user publishing platform, where au
 - **FastAPI** — web framework
 - **PostgreSQL** — relational database
 - **SQLAlchemy 2.0** — async ORM
+- **Alembic** — database migrations
 - **asyncpg** — async PostgreSQL driver
 - **Pydantic v2** — data validation and serialization
 - **python-jose** — JWT token generation and validation
@@ -24,6 +25,9 @@ This project simulates the backend of a multi-user publishing platform, where au
 
 ```
 fastapi-articles-api/
+├── alembic/
+│   ├── versions/
+│   └── env.py
 ├── api/
 │   └── v1/
 │       ├── api.py
@@ -45,6 +49,7 @@ fastapi-articles-api/
 │   └── user_schema.py
 ├── .env.example
 ├── .gitignore
+├── alembic.ini
 ├── create_tables.py
 ├── main.py
 ├── requirements.txt
@@ -61,6 +66,7 @@ fastapi-articles-api/
 - Full CRUD for users and articles
 - Async database sessions with SQLAlchemy and asyncpg
 - Data validation with Pydantic v2
+- Database schema versioning with Alembic
 
 ---
 
@@ -95,18 +101,7 @@ source venv/bin/activate
 **3. Install dependencies**
 
 ```bash
-pip install 
-fastapi
-psycopg2-binary
-sqlalchemy
-asyncpg
-uvicorn
-python-jose[cryptography]
-pytz
-passlib
-python-multipart
-pydantic-settings
-bcrypt == 4.0.1 'pydantic[email]'
+pip install fastapi psycopg2-binary sqlalchemy asyncpg uvicorn python-jose[cryptography] pytz passlib python-multipart pydantic-settings alembic bcrypt==4.0.1 "pydantic[email]"
 
 pip freeze > requirements.txt
 ```
@@ -131,11 +126,13 @@ import secrets
 secrets.token_urlsafe(32)
 ```
 
-**5. Create the database tables**
+**5. Apply database migrations**
 
 ```bash
-python create_tables.py
+alembic upgrade head
 ```
+
+This creates all tables defined in `models/` using the migration history tracked in `alembic/versions/`.
 
 **6. Run the server**
 
@@ -144,6 +141,30 @@ python main.py
 ```
 
 The API will be available at `http://localhost:8000`.
+
+---
+
+## Database Migrations
+
+This project uses **Alembic** to manage database schema changes. The connection URL is injected automatically from `Settings.DB_URL` in `alembic/env.py`, so `alembic.ini` doesn't need to store credentials.
+
+### Common commands
+
+| Command | Description |
+|---------|-------------|
+| `alembic revision --autogenerate -m "message"` | Generate a new migration based on model changes |
+| `alembic upgrade head` | Apply all pending migrations |
+| `alembic downgrade -1` | Revert the last migration |
+| `alembic history` | List migration history |
+| `alembic current` | Show the current migration applied to the database |
+
+### Adding a new model
+
+1. Create the model in `models/` inheriting from `Base` (`core/database.py`)
+2. Import it in `alembic/env.py` so Alembic can detect it
+3. Run `alembic revision --autogenerate -m "create <table> table"`
+4. Review the generated file in `alembic/versions/` before applying
+5. Run `alembic upgrade head`
 
 ---
 
