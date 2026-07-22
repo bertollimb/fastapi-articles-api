@@ -2,7 +2,7 @@
 
 REST API with user authentication and article management, built with FastAPI, PostgreSQL, SQLAlchemy async and JWT.
 
-This project simulates the backend of a multi-user publishing platform, where authenticated users can create, manage, and share articles. It was built to apply production-level backend practices: layered architecture, secure authentication, async database operations, schema migrations, and fully documented endpoints.
+This project simulates the backend of a multi-user publishing platform, where authenticated users can create, manage, and share articles. It was built to apply production-level backend practices such as layered architecture, secure authentication, asynchronous database operations, schema migrations, and automated integration testing.
 
 ---
 
@@ -18,12 +18,16 @@ This project simulates the backend of a multi-user publishing platform, where au
 - **python-jose** — JWT token generation and validation
 - **passlib + bcrypt** — password hashing
 - **uvicorn** — ASGI server
+- **pytest** — testing framework
+- **pytest-asyncio** — async test support
+- **httpx** — async API client for integration tests
+- **SQLite** — isolated database for automated tests
 
 ---
 
 ## Project Structure
 
-```
+```text
 fastapi-articles-api/
 ├── alembic/
 │   ├── versions/
@@ -47,6 +51,10 @@ fastapi-articles-api/
 ├── schemas/
 │   ├── article_schema.py
 │   └── user_schema.py
+├── tests/
+│   ├── conftest.py
+│   ├── test_articles.py
+│   └── test_users.py
 ├── .env.example
 ├── .gitignore
 ├── alembic.ini
@@ -67,6 +75,9 @@ fastapi-articles-api/
 - Async database sessions with SQLAlchemy and asyncpg
 - Data validation with Pydantic v2
 - Database schema versioning with Alembic
+- Automated integration tests with pytest
+- Isolated SQLite test database
+- Reusable pytest fixtures for authentication and test data
 
 ---
 
@@ -101,7 +112,7 @@ source venv/bin/activate
 **3. Install dependencies**
 
 ```bash
-pip install fastapi psycopg2-binary sqlalchemy asyncpg uvicorn python-jose[cryptography] pytz passlib python-multipart pydantic-settings alembic bcrypt==4.0.1 "pydantic[email]"
+pip install fastapi psycopg2-binary sqlalchemy asyncpg uvicorn python-jose[cryptography] pytz passlib python-multipart pydantic-settings alembic bcrypt==4.0.1 "pydantic[email]" pytest pytest-asyncio httpx aiosqlite
 
 pip freeze > requirements.txt
 ```
@@ -123,6 +134,7 @@ To generate a secure `JWT_SECRET`:
 
 ```python
 import secrets
+
 secrets.token_urlsafe(32)
 ```
 
@@ -140,7 +152,11 @@ This creates all tables defined in `models/` using the migration history tracked
 python main.py
 ```
 
-The API will be available at `http://localhost:8000`.
+The API will be available at:
+
+```
+http://localhost:8000
+```
 
 ---
 
@@ -160,22 +176,102 @@ This project uses **Alembic** to manage database schema changes. The connection 
 
 ### Adding a new model
 
-1. Create the model in `models/` inheriting from `Base` (`core/database.py`)
-2. Import it in `alembic/env.py` so Alembic can detect it
-3. Run `alembic revision --autogenerate -m "create <table> table"`
-4. Review the generated file in `alembic/versions/` before applying
-5. Run `alembic upgrade head`
+1. Create the model in `models/` inheriting from `Base` (`core/database.py`).
+2. Import the model in `alembic/env.py`.
+3. Run:
+
+```bash
+alembic revision --autogenerate -m "create <table> table"
+```
+
+4. Review the generated migration.
+5. Apply it:
+
+```bash
+alembic upgrade head
+```
+
+---
+
+## Testing
+
+The project includes automated integration tests covering authentication and article management.
+
+### Test Stack
+
+- **pytest** for test execution
+- **pytest-asyncio** for asynchronous tests
+- **httpx.AsyncClient** for HTTP integration testing
+- **SQLite** as an isolated test database
+
+### Test Fixtures
+
+Reusable fixtures defined in `tests/conftest.py` prepare the environment for each test and eliminate duplicated setup code.
+
+| Fixture | Purpose |
+|---------|---------|
+| `client` | Creates an asynchronous HTTP client |
+| `user_data` | Default payload used to create users |
+| `created_user` | Creates a user for the current test |
+| `auth_token` | Authenticates the created user and returns a JWT token |
+| `article_data` | Default payload used to create articles |
+| `created_article` | Creates an article associated with the authenticated user |
+
+### Test Isolation
+
+Each test runs against a fresh SQLite database.
+
+The database schema is recreated before every test, ensuring:
+
+- Tests are completely independent.
+- Tests can run in any order.
+- Tests do not share state.
+- No test depends on another to execute successfully.
+
+This approach follows common backend testing practices used in production environments.
+
+### Running the tests
+
+Run the entire test suite:
+
+```bash
+pytest
+```
+
+Run with verbose output:
+
+```bash
+pytest -v
+```
+
+Run a specific test file:
+
+```bash
+pytest tests/test_users.py -v
+```
+
+```bash
+pytest tests/test_articles.py -v
+```
+
+Run a single test:
+
+```bash
+pytest tests/test_articles.py::test_create_article -v
+```
 
 ---
 
 ## API Documentation
 
-FastAPI generates interactive documentation automatically. After running the server, access:
+FastAPI automatically generates interactive API documentation.
+
+After starting the server, access:
 
 | Interface | URL | Description |
 |-----------|-----|-------------|
-| Swagger UI | `http://localhost:8000/docs` | Interactive — test endpoints directly in the browser |
-| ReDoc | `http://localhost:8000/redoc` | Clean read-only documentation |
+| Swagger UI | `http://localhost:8000/docs` | Interactive documentation with request execution |
+| ReDoc | `http://localhost:8000/redoc` | Read-only API documentation |
 
 ---
 
@@ -186,39 +282,58 @@ FastAPI generates interactive documentation automatically. After running the ser
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
 | POST | `/api/v1/users/signup` | Register a new user | No |
-| POST | `/api/v1/users/login` | Authenticate and get token | No |
-| GET | `/api/v1/users/logged` | Get current logged user | Yes |
+| POST | `/api/v1/users/login` | Authenticate and receive a JWT token | No |
+| GET | `/api/v1/users/logged` | Retrieve the authenticated user | Yes |
 | GET | `/api/v1/users/` | List all users | Yes |
-| GET | `/api/v1/users/{user_id}` | Get user by ID with articles | Yes |
-| PUT | `/api/v1/users/{user_id}` | Update user | Yes |
-| DELETE | `/api/v1/users/{user_id}` | Delete user | Yes |
+| GET | `/api/v1/users/{user_id}` | Retrieve a user with associated articles | Yes |
+| PUT | `/api/v1/users/{user_id}` | Update a user | Yes |
+| DELETE | `/api/v1/users/{user_id}` | Delete a user | Yes |
 
 ### Articles
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
-| POST | `/api/v1/articles/` | Create a new article | Yes |
+| POST | `/api/v1/articles/` | Create an article | Yes |
 | GET | `/api/v1/articles/` | List all articles | No |
-| GET | `/api/v1/articles/{article_id}` | Get article by ID | No |
-| PUT | `/api/v1/articles/{article_id}` | Update article | Yes |
-| DELETE | `/api/v1/articles/{article_id}` | Delete article | Yes |
+| GET | `/api/v1/articles/{article_id}` | Retrieve an article by ID | No |
+| PUT | `/api/v1/articles/{article_id}` | Update an article | Yes |
+| DELETE | `/api/v1/articles/{article_id}` | Delete an article | Yes |
 
 ---
 
 ## Authentication
 
-This API uses **JWT Bearer Token** authentication.
+The API uses **JWT Bearer Authentication**.
 
-1. Register a user via `POST /api/v1/users/signup`
-2. Login via `POST /api/v1/users/login` using form fields `username` and `password`
-3. Use the returned `access_token` in the `Authorization` header for protected routes:
+Workflow:
+
+1. Register a user:
 
 ```
-Authorization: Bearer <your_token>
+POST /api/v1/users/signup
+```
+
+2. Authenticate:
+
+```
+POST /api/v1/users/login
+```
+
+using the form fields:
+
+- `username`
+- `password`
+
+3. Include the returned JWT in protected requests:
+
+```http
+Authorization: Bearer <access_token>
 ```
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
+
+See the [LICENSE](LICENSE) file for details.
