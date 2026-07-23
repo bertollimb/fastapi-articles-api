@@ -84,17 +84,12 @@ async def auth_token(client, created_user):
 
 @pytest.fixture
 async def created_article(client, auth_token):
-    response = await client.post(
-        "/api/v1/articles/",
-        json={
+    response = await client.post("/api/v1/articles/",json={
             "title": "An article",
             "description": "Just an article",
             "source_url": "https://www.udemy.com/course/fastapi-apis-modernas-e-assincronas-com-python/learn/lecture/32054384#overview",
-        },
-        headers={
-            "Authorization": f"Bearer {auth_token}",
-        },
-    )
+        }, headers={"Authorization": f"Bearer {auth_token}"},
+    )   
 
     assert response.status_code == 201
 
